@@ -72,7 +72,7 @@ public class SwiftyRSA {
     public func encryptString(str: String, publicKey: SecKeyRef, padding: SecPadding = SecPadding(kSecPaddingPKCS1)) -> String? {
         let blockSize = SecKeyGetBlockSize(publicKey)
         let plainTextData = [UInt8](str.utf8)
-        let plainTextDataLength = Int(count(str))
+        let plainTextDataLength = Int(str.characters.count)
         var encryptedData = [UInt8](count: Int(blockSize), repeatedValue: 0)
         var encryptedDataLength = blockSize
         
@@ -86,12 +86,12 @@ public class SwiftyRSA {
             return nil
         }
         
-        return data.base64EncodedStringWithOptions(nil)
+        return data.base64EncodedStringWithOptions([])
     }
     
     public func decryptString(str: String, privateKey: SecKeyRef, padding: SecPadding = SecPadding(kSecPaddingPKCS1)) -> String? {
         
-        let data: NSData! = NSData(base64EncodedString: str, options: NSDataBase64DecodingOptions(0))
+        let data: NSData! = NSData(base64EncodedString: str, options: NSDataBase64DecodingOptions(rawValue: 0))
         if data == nil {
             return nil
         }
@@ -104,7 +104,7 @@ public class SwiftyRSA {
         var decryptedData = [UInt8](count: Int(blockSize), repeatedValue: 0)
         var decryptedDataLength = blockSize
         
-        let result = SecKeyDecrypt(privateKey, padding, encryptedData, blockSize, &decryptedData, &decryptedDataLength)
+        _ = SecKeyDecrypt(privateKey, padding, encryptedData, blockSize, &decryptedData, &decryptedDataLength)
         
         let decryptedNSData = NSData(bytes: decryptedData, length: decryptedDataLength)
         return NSString(data: decryptedNSData, encoding: NSUTF8StringEncoding) as? String
@@ -161,7 +161,7 @@ public class SwiftyRSA {
     }
     
     private func dataFromPEMKey(key: String) -> NSData? {
-        var rawLines = key.componentsSeparatedByString("\n")
+        let rawLines = key.componentsSeparatedByString("\n")
         var lines = [String]()
         
         for line in rawLines {
@@ -181,7 +181,7 @@ public class SwiftyRSA {
         
         // Decode base64 key
         let base64EncodedKey = "".join(lines)
-        var keyData: NSData! = NSData(base64EncodedString: base64EncodedKey, options: .IgnoreUnknownCharacters)
+        let keyData: NSData! = NSData(base64EncodedString: base64EncodedKey, options: .IgnoreUnknownCharacters)
         if keyData == nil || keyData!.length == 0 {
             return nil
         }
@@ -227,7 +227,6 @@ public class SwiftyRSA {
             return nil
         }
         
-        let len = keyData.length
         let test = [CUnsignedChar](byteArray[index...keyData.length - 1])
         
         let data = NSData(bytes: test, length: keyData.length - index)
