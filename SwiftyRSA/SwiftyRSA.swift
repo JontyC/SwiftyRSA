@@ -11,10 +11,11 @@ import Foundation
 public class SwiftyRSA {
     
     private var keyTags: [NSData] = []
+    private static let defaultPadding: SecPadding = .PKCS1
     
     // MARK: - Public Shorthands
     
-    public class func encryptString(str: String, publicKeyPEM: String, padding: SecPadding = SecPadding(kSecPaddingPKCS1)) -> String? {
+    public class func encryptString(str: String, publicKeyPEM: String, padding: SecPadding = defaultPadding) -> String? {
         let rsa = SwiftyRSA()
         
         let key: SecKeyRef! = rsa.publicKeyFromPEMString(publicKeyPEM)
@@ -25,7 +26,7 @@ public class SwiftyRSA {
         return rsa.encryptString(str, publicKey: key, padding: padding)
     }
     
-    public class func encryptString(str: String, publicKeyDER: NSData, padding: SecPadding = SecPadding(kSecPaddingPKCS1)) -> String? {
+    public class func encryptString(str: String, publicKeyDER: NSData, padding: SecPadding = defaultPadding) -> String? {
         let rsa = SwiftyRSA()
         
         let key: SecKeyRef! = rsa.publicKeyFromDERData(publicKeyDER)
@@ -36,7 +37,7 @@ public class SwiftyRSA {
         return rsa.encryptString(str, publicKey: key, padding: padding)
     }
     
-    public class func decryptString(str: String, privateKeyPEM: String, padding: SecPadding = SecPadding(kSecPaddingPKCS1)) -> String? {
+    public class func decryptString(str: String, privateKeyPEM: String, padding: SecPadding = defaultPadding) -> String? {
         let rsa = SwiftyRSA()
         
         let key: SecKeyRef! = rsa.privateKeyFromPEMString(privateKeyPEM)
@@ -71,7 +72,7 @@ public class SwiftyRSA {
         return addKey(data!, isPublic: false)
     }
     
-    public func encryptString(str: String, publicKey: SecKeyRef, padding: SecPadding = SecPadding(kSecPaddingPKCS1)) -> String? {
+    public func encryptString(str: String, publicKey: SecKeyRef, padding: SecPadding = defaultPadding) -> String? {
         let blockSize = SecKeyGetBlockSize(publicKey)
         let plainTextData = [UInt8](str.utf8)
         let plainTextDataLength = Int(str.characters.count)
@@ -91,7 +92,7 @@ public class SwiftyRSA {
         return data.base64EncodedStringWithOptions([])
     }
     
-    public func decryptString(str: String, privateKey: SecKeyRef, padding: SecPadding = SecPadding(kSecPaddingPKCS1)) -> String? {
+    public func decryptString(str: String, privateKey: SecKeyRef, padding: SecPadding = defaultPadding) -> String? {
         
         let data: NSData! = NSData(base64EncodedString: str, options: NSDataBase64DecodingOptions(rawValue: 0))
         if data == nil {
@@ -131,7 +132,7 @@ public class SwiftyRSA {
         removeKeyWithTagData(tagData)
         
         // Add persistent version of the key to system keychain
-        let persistKey = UnsafeMutablePointer<Unmanaged<AnyObject>?>()
+        let persistKey = UnsafeMutablePointer<AnyObject?>()
         let keyClass   = isPublic ? kSecAttrKeyClassPublic : kSecAttrKeyClassPrivate
         
         // Add persistent version of the key to system keychain
@@ -144,7 +145,7 @@ public class SwiftyRSA {
         keyDict.setObject(NSNumber(bool: true),    forKey: kSecReturnPersistentRef as! NSCopying)
         keyDict.setObject(kSecAttrAccessibleWhenUnlocked, forKey: kSecAttrAccessible as! NSCopying)
         
-        var secStatus = SecItemAdd(keyDict as CFDictionaryRef, persistKey)
+        var secStatus = SecItemAdd(keyDict as CFDictionary, persistKey)
         if secStatus != noErr && secStatus != errSecDuplicateItem {
             return nil
         }
@@ -152,14 +153,14 @@ public class SwiftyRSA {
         keyTags.append(tagData)
         
         // Now fetch the SecKeyRef version of the key
-        var keyRef: Unmanaged<AnyObject>? = nil
+        var keyRef: AnyObject? = nil
         keyDict.removeObjectForKey(kSecValueData)
         keyDict.removeObjectForKey(kSecReturnPersistentRef)
         keyDict.setObject(NSNumber(bool: true), forKey: kSecReturnRef as! NSCopying)
         keyDict.setObject(kSecAttrKeyTypeRSA,   forKey: kSecAttrKeyType as! NSCopying)
         secStatus = SecItemCopyMatching(keyDict as CFDictionaryRef, &keyRef)
         
-        return keyRef != nil ? (keyRef!.takeRetainedValue() as! SecKeyRef) : nil
+        return keyRef != nil ? (keyRef! as! SecKeyRef) : nil
     }
     
     private func dataFromPEMKey(key: String) -> NSData? {
