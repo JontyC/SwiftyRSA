@@ -183,7 +183,7 @@ public class SwiftyRSA {
         }
         
         // Decode base64 key
-        let base64EncodedKey = "".join(lines)
+        let base64EncodedKey = lines.joinWithSeparator("")
         let keyData: NSData! = NSData(base64EncodedString: base64EncodedKey, options: .IgnoreUnknownCharacters)
         if keyData == nil || keyData!.length == 0 {
             return nil
